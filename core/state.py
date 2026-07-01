@@ -14,4 +14,4 @@ class AgentState(TypedDict):
     reroute_count: int
     final_summary: str
     knowledge_graph: dict
-    message: Annotated[list, add_messages]
+    messages: Annotated[list, add_messages]

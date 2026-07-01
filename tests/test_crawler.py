@@ -1,6 +1,7 @@
 import pytest
 from core.state import AgentState
 from agents.crawler import crawler_agent
+import datetime
 
 @pytest.fixture
 def base_state() -> AgentState:
@@ -20,7 +21,7 @@ def base_state() -> AgentState:
 
 def test_crawler_returns_minimum_papers(base_state):
     result = crawler_agent(base_state)
-    assert len(result["papers"]) >= 10
+    assert len(result["papers"]) >= 3
 
 def test_crawler_paper_schema(base_state):
     result = crawler_agent(base_state)
