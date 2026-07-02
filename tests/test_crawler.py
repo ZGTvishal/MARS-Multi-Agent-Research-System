@@ -1,4 +1,5 @@
 import pytest
+import arxiv
 from core.state import AgentState
 from agents.crawler import crawler_agent
 import datetime
@@ -21,7 +22,7 @@ def base_state() -> AgentState:
 
 def test_crawler_returns_minimum_papers(base_state):
     result = crawler_agent(base_state)
-    assert len(result["papers"]) >= 3
+    assert len(result["papers"]) >= 10
 
 def test_crawler_paper_schema(base_state):
     result = crawler_agent(base_state)
@@ -45,3 +46,10 @@ def test_crawler_source_is_arxiv(base_state):
     result = crawler_agent(base_state)
     for paper in result["papers"]:
         assert paper["source"] == "arxiv"
+
+def test_crawler_raises_on_insufficient_papers(monkeypatch, base_state):
+    def mock_results(self, search):
+        return iter([])  
+    monkeypatch.setattr(arxiv.Client, "results", mock_results)
+    with pytest.raises(ValueError, match="Insufficient papers retrieved"):
+        crawler_agent(base_state)
