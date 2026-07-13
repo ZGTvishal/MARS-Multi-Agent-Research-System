@@ -1,13 +1,27 @@
 import pytest
 from core.state import AgentState
-from agents.indexing import indexing_agent
+import agents.indexing as indexing_module
 import datetime
+import os
+
 
 @pytest.fixture
 def base_state() -> AgentState:
     return {
         "query": "transformer architecture attention mechanism",
-        "papers": [],
+        "papers": [{
+            "title":"Example paper 1",
+            "abstract":"example abstract of paper 1",
+            "published": "2024/1/28",
+            "authors": "Fake Author 1",
+            "entry_id":f"http://arxiv.org/abs/2.00000"},
+            {
+            "title":"Example paper 2",
+            "abstract":"example abstract of paper 2",
+            "published": "2024/2/28",
+            "authors": "Fake Author 2",
+            "entry_id":f"http://arxiv.org/abs/3.00000"
+            }],
         "index_path": "",
         "chunks": [],
         "retrieved_chunks": [],
@@ -18,4 +32,59 @@ def base_state() -> AgentState:
         "knowledge_graph": {},
         "messages": []
     }
+
+
+@pytest.fixture
+def isolated_index_dir(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        indexing_module,
+        "_part_dir",
+        str(tmp_path)
+    )
+
+def test_index_raises_on_empty_papers(base_state):
+    state = {**base_state, "papers": []}
+    with pytest.raises(ValueError, match="No papers found"):
+        indexing_module.indexing_agent(state)
+
+def test_index_non_empty_chunks(base_state, isolated_index_dir):
+    isolated_index_dir()
+    result = indexing_module.indexing_agent(base_state)
+    assert len(result["chunks"]) != 0
+
+
+def test_index_returns_minimum_papers(base_state):
+    result = indexing_module.indexing_agent(base_state)
+    assert len(result["papers"]) > 0
+
+
+
+def test_index_state_keys(base_state):
+    result = indexing_module.indexing_agent(base_state)
+    required_keys = {"papers", "query"}
+    for _ in base_state:
+        assert required_keys == set(base_state.keys())
+
+
+
+def test_index_chunk_vs_paper_length(base_state):
+    result = indexing_module.indexing_agent(base_state)
+    assert len(result["chunks"]) == len(result["papers"])
+
+
+
+
+
+def test_index_chunk_matches_specs(base_state):
+    result = indexing_module.indexing_agent(base_state)
+    # To be implemented
+
+def test_index_file_exits(base_state):
+    result = indexing_module.indexing_agent(base_state)
+    if not os.path.exists(result["index_path"]):
+        pytest.raises(ValueError, match="Index not found")
+
+def test_index_indexfile_vs_len_of_chunks(base_state):
+    result= indexing_module.indexing_agent(base_state)
+    indexed_papers = os.listdir[result["index_path"]]
 

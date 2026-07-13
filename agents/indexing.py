@@ -6,10 +6,13 @@ from sentence_transformers import SentenceTransformer
 from core.state import AgentState
 
 _model = SentenceTransformer("all-MiniLM-L6-v2")
-
+_part_dir = "indexes/temp"
 def indexing_agent(state: AgentState) -> dict:
     papers = state["papers"]
     query = state["query"]
+
+    if len(papers) == 0:
+        raise ValueError("No papers found")
 
     chunks = [f"Title: {p['title']}\nAbstract: {p['abstract']}" for p in papers]
 
@@ -23,7 +26,7 @@ def indexing_agent(state: AgentState) -> dict:
     index.add(embedding)
 
     query_hash = hashlib.md5(query.encode()).hexdigest()[:8]
-    index_dir = f"indexes/{query_hash}"
+    index_dir = f"{_part_dir}/{query_hash}"
     os.makedirs(index_dir, exist_ok=True)
 
     index_path = f"{index_dir}/faiss.index"
