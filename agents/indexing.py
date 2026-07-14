@@ -6,7 +6,7 @@ from sentence_transformers import SentenceTransformer
 from core.state import AgentState
 
 _model = SentenceTransformer("all-MiniLM-L6-v2")
-_part_dir = "indexes/temp"
+_part_dir = "indexes"
 def indexing_agent(state: AgentState) -> dict:
     papers = state["papers"]
     query = state["query"]

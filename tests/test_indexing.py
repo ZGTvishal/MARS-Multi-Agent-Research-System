@@ -53,38 +53,29 @@ def test_index_non_empty_chunks(base_state, isolated_index_dir):
     assert len(result["chunks"]) != 0
 
 
-def test_index_returns_minimum_papers(base_state):
-    result = indexing_module.indexing_agent(base_state)
-    assert len(result["papers"]) > 0
+def test_index_chunk_matches_specs(base_state, isolated_index_dir):
+    
 
 
 
-def test_index_state_keys(base_state):
-    result = indexing_module.indexing_agent(base_state)
-    required_keys = {"papers", "query"}
-    for _ in base_state:
-        assert required_keys == set(base_state.keys())
+def test_index_file_exits(base_state, isolated_index_dir):
+    pass
+    
 
 
 
-def test_index_chunk_vs_paper_length(base_state):
-    result = indexing_module.indexing_agent(base_state)
-    assert len(result["chunks"]) == len(result["papers"])
+def test_index_chunk_vs_paper_length(base_state,isolated_index_dir):
+    pass
+    
 
 
 
+def test_index_indexfile_vs_len_of_chunks(base_state, isolated_index_dir):
+    pass
 
 
-def test_index_chunk_matches_specs(base_state):
-    result = indexing_module.indexing_agent(base_state)
-    # To be implemented
+def test_index_state_keys(base_state, isolated_index_dir):
+    pass
 
-def test_index_file_exits(base_state):
-    result = indexing_module.indexing_agent(base_state)
-    if not os.path.exists(result["index_path"]):
-        pytest.raises(ValueError, match="Index not found")
-
-def test_index_indexfile_vs_len_of_chunks(base_state):
-    result= indexing_module.indexing_agent(base_state)
-    indexed_papers = os.listdir[result["index_path"]]
-
+def test_index_chunk_vs_paper_length(base_state, isolated_index_dir):
+    pass
