@@ -3,6 +3,7 @@ from core.state import AgentState
 import agents.indexing as indexing_module
 import datetime
 import os
+import faiss
 
 
 @pytest.fixture
@@ -42,6 +43,12 @@ def isolated_index_dir(monkeypatch, tmp_path):
         str(tmp_path)
     )
 
+
+# @pytest.fixture
+# def mock_index(monkeypatch)
+
+
+
 def test_index_raises_on_empty_papers(base_state):
     state = {**base_state, "papers": []}
     with pytest.raises(ValueError, match="No papers found"):
@@ -61,32 +68,37 @@ def test_index_chunk_vs_paper_length(base_state,isolated_index_dir):
     nos_paper = len(base_state["papers"])
     assert nos_paper == len(result["chunks"])
 
-
-def test_index_non_empty_chunks(base_state, isolated_index_dir):
-    result = indexing_module.indexing_agent(base_state)
-    assert len(result["chunks"]) != 0
-
-
-
-
-
-
-# def test_index_chunk_matches_specs(base_state, isolated_index_dir):
+# Droped test, due to redundancy
+# def test_index_non_empty_chunks(base_state, isolated_index_dir):
 #     result = indexing_module.indexing_agent(base_state)
-    
+#     assert len(result["chunks"]) != 0
+
+
+
+
+
+
+def test_index_chunk_matches_specs(base_state, isolated_index_dir):
+    result = indexing_module.indexing_agent(base_state)
+    required_specs = ["Title:", "\nAbstract:"]
+    for c in result["chunks"]:
+        assert c.startswith(required_specs[0])
+        assert required_specs[1] in c
     
 
 
 
 def test_index_file_exits(base_state, isolated_index_dir):
-    pass
-    
+    result = indexing_module.indexing_agent(base_state)
+    assert os.path.exists(result["index_path"])
     
 
 
 
 def test_index_indexfile_vs_len_of_chunks(base_state, isolated_index_dir):
-    pass
+    result = indexing_module.indexing_agent(base_state)
+    i = faiss.read_index(result["index_path"])
+    assert i.ntotal == len(result["chunks"])
 
 
 
