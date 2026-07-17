@@ -1,10 +1,9 @@
 import pytest
 from core.state import AgentState
 import agents.indexing as indexing_module
-import datetime
 import os
 import faiss
-
+import numpy as np
 
 @pytest.fixture
 def base_state() -> AgentState:
@@ -44,8 +43,17 @@ def isolated_index_dir(monkeypatch, tmp_path):
     )
 
 
-# @pytest.fixture
-# def mock_index(monkeypatch)
+@pytest.fixture
+def mock_index(monkeypatch):
+    def fake_encode(chunks: list[str], embedding_dim: int = 384, convert_to_numpy=True):
+        return np.zeros((len(chunks), embedding_dim), dtype=np.float32)
+        
+    monkeypatch.setattr(
+        indexing_module._model,
+        "encode",
+        fake_encode)
+    
+
 
 
 
@@ -56,14 +64,14 @@ def test_index_raises_on_empty_papers(base_state):
 
 
 
-def test_index_state_keys(base_state, isolated_index_dir):
+def test_index_state_keys(base_state, isolated_index_dir, mock_index):
     required_keys = {"chunks", "index_path"}
     result = indexing_module.indexing_agent(base_state)
     assert required_keys == set(result.keys())
 
 
 
-def test_index_chunk_vs_paper_length(base_state,isolated_index_dir):
+def test_index_chunk_vs_paper_length(base_state,isolated_index_dir, mock_index):
     result = indexing_module.indexing_agent(base_state)
     nos_paper = len(base_state["papers"])
     assert nos_paper == len(result["chunks"])
@@ -78,7 +86,7 @@ def test_index_chunk_vs_paper_length(base_state,isolated_index_dir):
 
 
 
-def test_index_chunk_matches_specs(base_state, isolated_index_dir):
+def test_index_chunk_matches_specs(base_state, isolated_index_dir, mock_index):
     result = indexing_module.indexing_agent(base_state)
     required_specs = ["Title:", "\nAbstract:"]
     for c in result["chunks"]:
@@ -88,20 +96,15 @@ def test_index_chunk_matches_specs(base_state, isolated_index_dir):
 
 
 
-def test_index_file_exits(base_state, isolated_index_dir):
+def test_index_file_exits(base_state, isolated_index_dir, mock_index):
     result = indexing_module.indexing_agent(base_state)
     assert os.path.exists(result["index_path"])
     
 
 
 
-def test_index_indexfile_vs_len_of_chunks(base_state, isolated_index_dir):
+def test_index_indexfile_vs_len_of_chunks(base_state, isolated_index_dir, mock_index):
     result = indexing_module.indexing_agent(base_state)
     i = faiss.read_index(result["index_path"])
     assert i.ntotal == len(result["chunks"])
 
-
-
-
-def test_index_chunk_vs_paper_length(base_state, isolated_index_dir):
-    pass
