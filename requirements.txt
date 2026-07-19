@@ -1,0 +1,10 @@
+langchain==0.3.25
+langgraph==0.2.68
+langchain-core==0.3.65
+langchain-google-genai==2.1.4
+arxiv==4.0.0
+faiss-cpu==1.14.3
+sentence-transformers==5.6.0
+pytest==9.1.1
+
+
