@@ -57,7 +57,7 @@ def mock_index(monkeypatch):
 
 
 
-def test_index_raises_on_empty_papers(base_state):
+def test_index_raises_on_empty_papers(base_state, isolated_index_dir):
     state = {**base_state, "papers": []}
     with pytest.raises(ValueError, match="No papers found"):
         indexing_module.indexing_agent(state)
