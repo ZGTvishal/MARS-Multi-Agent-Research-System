@@ -88,3 +88,15 @@ def test_crawler_raises_on_empty_results(base_state, mock_arxiv):
     mock_arxiv([])
     with pytest.raises(ValueError, match="Insufficient papers retrieved"):
         crawler_agent(base_state)
+
+def test_fixture_abstract_lengths():
+    papers = make_fake_papers(12)
+
+    lengths = [len(p.summary.split()) for p in papers]
+
+    print(lengths)
+    print(f"min={min(lengths)}")
+    print(f"max={max(lengths)}")
+    print(f"avg={sum(lengths)/len(lengths):.1f}")
+
+print(test_fixture_abstract_lengths())
