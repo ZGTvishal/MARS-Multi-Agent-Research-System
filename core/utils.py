@@ -1,4 +1,7 @@
 import numpy as np
+import os
+import hashlib
+import faiss
 
 def get_paper_by_id(papers: list[dict], entry_id: str) -> dict:
     """
@@ -17,12 +20,6 @@ def get_paper_by_id(papers: list[dict], entry_id: str) -> dict:
         return next(p for p in papers if p["url"] == entry_id)
     except StopIteration:
         raise ValueError(f'No paper found with entry_id - {entry_id}')
-
-
-def get_index_path(entry_id: str) -> str:
-    pass
-
-
 
 
 def split_text(text: str) -> list[str]:
@@ -56,3 +53,41 @@ def split_text(text: str) -> list[str]:
         overlapped_chunks.append(" ".join(overlapped))
 
     return overlapped_chunks
+
+_part_dir = "indexes"
+
+def get_index_path(entry_id: str) -> str:
+    """
+    Gets individual index path, additionally build the directory if it does't exits already
+
+    Agrs:
+        entry_id
+    
+    Returns: 
+        index path
+    """
+    query_hash = hashlib.md5(entry_id.encode()).hexdigest()[:8]
+    index_dir = f"{_part_dir}/{query_hash}"
+
+    os.makedirs(index_dir, exist_ok=True)
+    index_path = f"{index_dir}/faiss.index"
+
+    return index_path
+
+def get_corpus_index_path(query: str) -> str:
+    """
+        Gets corpus index path, additionally build the directory if it does't exits already
+    
+        Agrs:
+            entry_id
+        
+        Returns: 
+            index path
+        """
+    query_hash = hashlib.md5(query.encode()).hexdigest()[:8]
+    index_dir = f"{_part_dir}/{query_hash}"
+
+    os.makedirs(index_dir, exist_ok=True)
+    index_path = f"{index_dir}/faiss.index"
+
+    return index_path

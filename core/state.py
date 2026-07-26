@@ -10,7 +10,6 @@ def merge_dicts(left: dict, right: dict) -> dict:
 class AgentState(TypedDict):
     query:str
     papers: list[dict]
-    index_path: str
     chunks: list[str]
     retrieved_chunks: Annotated[dict[str, list[str]], merge_dicts]
     summary: Annotated[dict[str, str], merge_dicts]
