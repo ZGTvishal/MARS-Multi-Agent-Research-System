@@ -27,7 +27,7 @@ def split_text(text: str) -> list[str]:
     Generates a list of chunks (5 elements) from a string with overlap of 3 words from the previous element excluding the 0th element. 
         
         Args:
-            str: The input abstract.
+            str: The abstract of the paper.
         
         Returns: 
             List (5 element) of chunks with 3 word overlap
