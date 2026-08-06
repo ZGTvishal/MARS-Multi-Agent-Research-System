@@ -82,6 +82,16 @@ def summarise(state: SummariseInput) -> dict:
     # content contains two part, 0th index with the reasoning(not usefull for our usecase), 1st index with the actual summary which is being retrived by content[-1].
     output_text = raw_response.content[-1] 
 
-    return Command(update= {'summary': {state['paper']['url']:output_text}, 'retrieved_chunks': {state["paper"]['url']:mapped_chunk} }, goto= Send("validate", {'entry_id': state["paper"]["url"]}))
+    return Command(update= {'summary': {state['paper']['url']:output_text}, 'retrieved_chunks': {state["paper"]['url']:mapped_chunk} }, goto= Send("validate", {'paper':state["paper"],'entry_id': state["paper"]["url"]}))
+
+
+class ValidateInput(TypedDict):
+    paper: PaperDict
+    entry_id: str
+
+
+
+
+
 
 
