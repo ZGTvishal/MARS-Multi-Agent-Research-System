@@ -7,6 +7,7 @@ import os
 from agents.indexing import _model
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
+from bert_score import BERTScorer
 
 load_dotenv()
 
@@ -16,6 +17,7 @@ def dispatch(state: AgentState) -> list[Send]:
     k = 5
     dispatched_output = [Send("summarise", {"paper": p,
                       "k":k,
+                      "reroute_count": 0
                       }) for p in state["papers"]]
 
     return dispatched_output
@@ -32,6 +34,7 @@ class PaperDict(TypedDict):
 class SummariseInput(TypedDict):
     paper : PaperDict
     k : int
+    reroute_count: int
 
 
 
@@ -77,21 +80,54 @@ def summarise(state: SummariseInput) -> dict:
     ("human", query),
     ]
 
-    #llm invokation
+    #LLM invokation
     raw_response = llm.invoke(messages)
-    # content contains two part, 0th index with the reasoning(not usefull for our usecase), 1st index with the actual summary which is being retrived by content[-1].
-    output_text = raw_response.content[-1] 
+    # Gemma 4 (31B) returns AIMessage.content as a list with two blocks, an undocumented shape distinct from both cases in the langchain-google-genai docs (Gemini 2.5-and-earlier: plain string; Gemini 3.x: single dict with a 'type' key). Verified across multiple real calls this session: block [0] is a reasoning/scratchpad (bullet fragments, no prose), block [-1] is the polished final answer (markdown headers, full paragraphs).usage_metadata confirms reasoning tokens are counted separately from output tokens (e.g. 565 reasoning vs 581 output vs 1388 total in one sample), supporting that block [0] is a distinct reasoning pass rather than a formatting quirk. `.text` (BaseMessage) does NOT handle this shape correctly — it concatenates both blocks, same as a naive join. Extraction here is positional (content[-1]), verified consistent across 3 real samples with no exceptions; if a future SDK/model update changes block order or count, this will silently break — no runtime guard exists.
+    output_text = raw_response.content[-1]
 
-    return Command(update= {'summary': {state['paper']['url']:output_text}, 'retrieved_chunks': {state["paper"]['url']:mapped_chunk} }, goto= Send("validate", {'paper':state["paper"],'entry_id': state["paper"]["url"]}))
+    return Command(update= {'summary': {state['paper']['url']:output_text}, 'retrieved_chunks': {state["paper"]['url']:mapped_chunk} }, goto= Send("validate", {'paper':state["paper"],
+    'summary': output_text,
+    'retrieved_chunks': mapped_chunk,
+    'entry_id': state["paper"]["url"],
+    'reroute_count': state["reroute_count"]
+    }))
 
 
 class ValidateInput(TypedDict):
     paper: PaperDict
     entry_id: str
+    summary: str
+    retrieved_chunks: list[str]
+    reroute_count: int
 
-
-
-
-
-
-
+scorer = BERTScorer(lang="en")
+def validate(state: ValidateInput) -> dict:
+    """
+        Produces BERTScore_F1 for every paper summary. Updates the AgentState on terminal cases (BERTScore = 0.65, Reroute_count >= 2).
+        Reroutes to summarise function if terminal has not been achieved. 
+    
+        Args: 
+            invoked exclusively via Send, hence typed against ValidateInput rather than AgentState
+        
+        Updates:
+            AgentState with final_summary, reroute_count of, errors for every paper.  
+        
+    """
+    P, R, F1 = scorer.score(
+    [state["summary"]],
+    [state["retrieved_chunks"]],
+)
+    
+    F1_float = F1.item()
+    if F1_float >= 0.65:
+        return {'final_summary':{state['paper']['url']: state['summary']}, 'reroute_count': {state['entry_id']:state["reroute_count"]}}
+    elif F1_float < 0.65 and state['reroute_count'] < 2:
+        new_count = state['reroute_count'] + 1
+        return Command(update ={'reroute_count':{state["entry_id"]: new_count}}, goto=Send("summarise", {"paper":state["paper"], "k":3, 'reroute_count':new_count }))
+    elif state['reroute_count'] >= 2:
+        return {'final_summary':{state['paper']['url']: state['summary']}, 'errors':{state["entry_id"]:{'reason':f"Low BERTScore.. The summary score is {F1_float}", "bertscore_f1":F1_float}}}
+    else:
+        return {
+            'final_summary':{state['paper']['url']: state['summary']},
+            'errors':{state["entry_id"]:{'reason': "BERTScore F1 returned NaN", "bertscore_f1":F1_float}}
+        }
