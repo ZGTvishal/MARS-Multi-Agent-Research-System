@@ -94,8 +94,6 @@ def test_index_file_exits(base_state, isolated_index_dir, mock_index):
     assert os.path.exists(expected_path)
     
 
-
-
 def test_index_indexfile_vs_len_of_chunks(base_state, isolated_index_dir, mock_index):
     result = indexing_module.indexing_agent(base_state)
     expected_path = indexing_module.get_corpus_index_path(base_state["query"])
