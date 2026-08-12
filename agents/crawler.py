@@ -26,8 +26,8 @@ def crawler_agent(state: AgentState) -> dict:
         papers.append({
             "title": result.title,
             "abstract": result.summary,
-            "published": str(result.published.date()),
-            "authors": ", ".join(a.name for a in result.authors),
+            "year": int(result.year),
+            "authors": [a.name for a in result.authors],
             "url": result.entry_id,
             "source": "arxiv"
         })
@@ -36,3 +36,4 @@ def crawler_agent(state: AgentState) -> dict:
         raise ValueError(f"Insufficient papers retrieved: {len(papers)}/10 minimum")
 
     return {"papers": papers}
+

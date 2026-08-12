@@ -15,6 +15,8 @@ load_dotenv()
 
 def dispatch(state: AgentState) -> list[Send]:
     k = 5
+    if len(state["papers"]) == 0:
+        raise ValueError("No papers found")
     dispatched_output = [Send("summarise", {"paper": p,
                       "k":k,
                       "reroute_count": 0
