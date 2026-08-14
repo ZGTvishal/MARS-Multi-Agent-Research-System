@@ -122,14 +122,14 @@ def validate(state: ValidateInput) -> dict:
     
     F1_float = F1.item()
     if F1_float >= 0.65:
-        return {'final_summary':{state['paper']['url']: state['summary']}, 'reroute_count': {state['entry_id']:state["reroute_count"]}}
+        return {'final_summary':{state['paper']['url']: state['summary']}, 'bertscore_f1':{state['paper']['url']: F1_float}, 'reroute_count': {state['entry_id']:state["reroute_count"]}}
     elif F1_float < 0.65 and state['reroute_count'] < 2:
         new_count = state['reroute_count'] + 1
-        return Command(update ={'reroute_count':{state["entry_id"]: new_count}}, goto=Send("summarise", {"paper":state["paper"], "k":3, 'reroute_count':new_count }))
+        return Command(update ={'reroute_count':{state["entry_id"]: new_count}, 'bertscore_f1':{state['paper']['url']: F1_float}}, goto=Send("summarise", {"paper":state["paper"], "k":3, 'reroute_count':new_count }))
     elif state['reroute_count'] >= 2:
-        return {'final_summary':{state['paper']['url']: state['summary']}, 'errors':{state["entry_id"]:{'reason':f"Low BERTScore.. The summary score is {F1_float}", "bertscore_f1":F1_float}}}
+        return {'final_summary':{state['paper']['url']: state['summary']},'bertscore_f1':{state['paper']['url']: F1_float}, 'errors':{state["entry_id"]:{'reason':f"Low BERTScore.. The summary score is {F1_float}", "bertscore_f1":F1_float}}}
     else:
         return {
-            'final_summary':{state['paper']['url']: state['summary']},
+            'final_summary':{state['paper']['url']: state['summary']},'bertscore_f1':{state['paper']['url']: F1_float},
             'errors':{state["entry_id"]:{'reason': "BERTScore F1 returned NaN", "bertscore_f1":F1_float}}
         }
