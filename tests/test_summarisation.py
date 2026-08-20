@@ -7,14 +7,14 @@ import torch
 class FakeFaissIndex:
     def search(self, embedding, k):
         distances = [[0.1, 0.2, 0.3, 0.4, 0.5]]
-
         indices = [[0, 1, 2, 3, 4]]
-
         return distances, indices
+
 
 class FakeModel:
     def encode(self, texts, convert_to_numpy=True):
         return [[0.1, 0.2, 0.3, 0.4]]
+
 
 class FakeLLM:
     def __init__(self, **kwargs):
@@ -25,11 +25,13 @@ class FakeLLM:
         self.invoked_messages = messages
         return FakeLLMResponse()
 
+
 class FakeLLMResponse:
     content = [
         "Fake reasoning output",
-        "This is the final generated research summary."
+        "This is the final generated research summary.",
     ]
+
 
 class FakeScorer:
     def __init__(self, score_value):
@@ -42,6 +44,7 @@ class FakeScorer:
             torch.tensor([self.score_value]),
         )
 
+
 class FakeNaNScorer:
     def score(self, candidates, references):
         nan = torch.tensor([float("nan")])
@@ -52,14 +55,18 @@ class FakeNaNScorer:
             nan,
         )
 
+
 def test_dispatch_empty_papers(base_state):
     state = {**base_state, "papers": []}
+
     with pytest.raises(ValueError, match="No papers found"):
-            summary_module.dispatch(state)
+        summary_module.dispatch(state)
 
 
 def test_dispatch_creates_summarise_sends(base_state):
-    state = {**base_state, "query": "transformer architecture attention mechanism",
+    state = {
+        **base_state,
+        "query": "transformer architecture attention mechanism",
         "papers": [
             {
                 "title": "Example Paper 1",
@@ -98,7 +105,9 @@ def test_dispatch_creates_summarise_sends(base_state):
                 "year": 2023,
                 "source": "arxiv",
             },
-        ]}
+        ],
+    }
+
     result = summary_module.dispatch(state)
 
     assert len(result) == len(state["papers"])
@@ -111,11 +120,14 @@ def test_dispatch_creates_summarise_sends(base_state):
             "reroute_count": 0,
         }
 
+
 def test_summarise_generates_summary_and_routes_to_validate(
     base_state,
     monkeypatch,
 ):
-    state = {**base_state, "query": "transformer architecture attention mechanism",
+    state = {
+        **base_state,
+        "query": "transformer architecture attention mechanism",
         "papers": [
             {
                 "title": "Example Paper 1",
@@ -154,7 +166,9 @@ def test_summarise_generates_summary_and_routes_to_validate(
                 "year": 2023,
                 "source": "arxiv",
             },
-        ]}
+        ],
+    }
+
     paper = state["papers"][0]
 
     state = {
@@ -167,25 +181,21 @@ def test_summarise_generates_summary_and_routes_to_validate(
     fake_model = FakeModel()
     fake_llm = FakeLLM()
 
-    # Mock index path
     monkeypatch.setattr(
         "agents.summarisation.get_index_path",
         lambda url: "/fake/index.faiss",
     )
 
-    # Mock FAISS
     monkeypatch.setattr(
         "agents.summarisation.faiss.read_index",
         lambda path: fake_index,
     )
 
-    # Mock embedding model
     monkeypatch.setattr(
         "agents.summarisation._model",
         fake_model,
     )
 
-    # Mock text splitting
     fake_chunks = [
         "Chunk 0",
         "Chunk 1",
@@ -199,7 +209,6 @@ def test_summarise_generates_summary_and_routes_to_validate(
         lambda abstract: fake_chunks,
     )
 
-    # Mock LLM
     monkeypatch.setattr(
         "agents.summarisation.ChatGoogleGenerativeAI",
         lambda **kwargs: fake_llm,
@@ -208,8 +217,10 @@ def test_summarise_generates_summary_and_routes_to_validate(
     result = summary_module.summarise(state)
 
     assert result.update["summary"][paper["url"]] == (
-    "This is the final generated research summary."
-)
+        "This is the final generated research summary."
+    )
+
+    assert result.update["retrieved_chunks"][paper["url"]] == fake_chunks
 
     assert result.goto.node == "validate"
 
@@ -221,11 +232,14 @@ def test_summarise_generates_summary_and_routes_to_validate(
         "reroute_count": 0,
     }
 
+
 def test_validate_passes_on_first_attempt(
     base_state,
     monkeypatch,
 ):
-    state = {**base_state, "query": "transformer architecture attention mechanism",
+    state = {
+        **base_state,
+        "query": "transformer architecture attention mechanism",
         "papers": [
             {
                 "title": "Example Paper 1",
@@ -264,7 +278,9 @@ def test_validate_passes_on_first_attempt(
                 "year": 2023,
                 "source": "arxiv",
             },
-        ]}
+        ],
+    }
+
     paper = state["papers"][0]
 
     state_n = {
@@ -287,18 +303,24 @@ def test_validate_passes_on_first_attempt(
 
     assert result == {
         "final_summary": {
-            paper["url"]: "Generated summary"
+            paper["url"]: "Generated summary",
+        },
+        "bertscore_f1": {
+            paper["url"]: pytest.approx(0.80),
         },
         "reroute_count": {
-            paper["url"]: 0
+            paper["url"]: 0,
         },
     }
+
 
 def test_validate_reroutes_from_zero_to_one(
     base_state,
     monkeypatch,
 ):
-    state = {**base_state, "query": "transformer architecture attention mechanism",
+    state = {
+        **base_state,
+        "query": "transformer architecture attention mechanism",
         "papers": [
             {
                 "title": "Example Paper 1",
@@ -337,7 +359,9 @@ def test_validate_reroutes_from_zero_to_one(
                 "year": 2023,
                 "source": "arxiv",
             },
-        ]}
+        ],
+    }
+
     paper = state["papers"][0]
 
     state_n = {
@@ -360,8 +384,11 @@ def test_validate_reroutes_from_zero_to_one(
 
     assert result.update == {
         "reroute_count": {
-            paper["url"]: 1
-        }
+            paper["url"]: 1,
+        },
+        "bertscore_f1": {
+            paper["url"]: pytest.approx(0.40),
+        },
     }
 
     assert result.goto.node == "summarise"
@@ -372,11 +399,14 @@ def test_validate_reroutes_from_zero_to_one(
         "reroute_count": 1,
     }
 
+
 def test_validate_reroutes_from_one_to_two(
     base_state,
     monkeypatch,
 ):
-    state = {**base_state, "query": "transformer architecture attention mechanism",
+    state = {
+        **base_state,
+        "query": "transformer architecture attention mechanism",
         "papers": [
             {
                 "title": "Example Paper 1",
@@ -415,7 +445,9 @@ def test_validate_reroutes_from_one_to_two(
                 "year": 2023,
                 "source": "arxiv",
             },
-        ]}
+        ],
+    }
+
     paper = state["papers"][0]
 
     state_n = {
@@ -438,8 +470,11 @@ def test_validate_reroutes_from_one_to_two(
 
     assert result.update == {
         "reroute_count": {
-            paper["url"]: 2
-        }
+            paper["url"]: 2,
+        },
+        "bertscore_f1": {
+            paper["url"]: pytest.approx(0.40),
+        },
     }
 
     assert result.goto.node == "summarise"
@@ -455,7 +490,9 @@ def test_validate_stops_after_third_failed_attempt(
     base_state,
     monkeypatch,
 ):
-    state = {**base_state, "query": "transformer architecture attention mechanism",
+    state = {
+        **base_state,
+        "query": "transformer architecture attention mechanism",
         "papers": [
             {
                 "title": "Example Paper 1",
@@ -494,7 +531,9 @@ def test_validate_stops_after_third_failed_attempt(
                 "year": 2023,
                 "source": "arxiv",
             },
-        ]}
+        ],
+    }
+
     paper = state["papers"][0]
 
     state_n = {
@@ -516,22 +555,29 @@ def test_validate_stops_after_third_failed_attempt(
     result = summary_module.validate(state_n)
 
     assert result["final_summary"] == {
-        paper["url"]: "Final poor summary"
+        paper["url"]: "Final poor summary",
     }
 
-    error = result["errors"][paper["url"]]
+    assert result["bertscore_f1"] == {
+        paper["url"]: pytest.approx(0.40),
+    }
 
-    assert error["reason"].startswith(
+    assert result["errors"][paper["url"]]["reason"].startswith(
         "Low BERTScore.. The summary score is "
     )
 
-    assert error["bertscore_f1"] == pytest.approx(0.40)
+    assert result["errors"][paper["url"]]["bertscore_f1"] == pytest.approx(
+        0.40
+    )
+
 
 def test_validate_passes_on_last_attempt(
     base_state,
     monkeypatch,
 ):
-    state = {**base_state, "query": "transformer architecture attention mechanism",
+    state = {
+        **base_state,
+        "query": "transformer architecture attention mechanism",
         "papers": [
             {
                 "title": "Example Paper 1",
@@ -570,7 +616,9 @@ def test_validate_passes_on_last_attempt(
                 "year": 2023,
                 "source": "arxiv",
             },
-        ]}
+        ],
+    }
+
     paper = state["papers"][0]
 
     state_n = {
@@ -593,20 +641,24 @@ def test_validate_passes_on_last_attempt(
 
     assert result == {
         "final_summary": {
-            paper["url"]: "Generated summary"
+            paper["url"]: "Generated summary",
+        },
+        "bertscore_f1": {
+            paper["url"]: pytest.approx(0.80),
         },
         "reroute_count": {
-            paper["url"]: 2
+            paper["url"]: 2,
         },
     }
-
 
 
 def test_validate_handles_nan_score(
     base_state,
     monkeypatch,
 ):
-    state = {**base_state, "query": "transformer architecture attention mechanism",
+    state = {
+        **base_state,
+        "query": "transformer architecture attention mechanism",
         "papers": [
             {
                 "title": "Example Paper 1",
@@ -645,7 +697,9 @@ def test_validate_handles_nan_score(
                 "year": 2023,
                 "source": "arxiv",
             },
-        ]}
+        ],
+    }
+
     paper = state["papers"][0]
 
     state_n = {
@@ -667,13 +721,19 @@ def test_validate_handles_nan_score(
     result = summary_module.validate(state_n)
 
     assert result["final_summary"] == {
-        paper["url"]: "Generated summary"
+        paper["url"]: "Generated summary",
     }
+
+    assert result["bertscore_f1"][paper["url"]] != result["bertscore_f1"][
+        paper["url"]
+    ]
 
     assert result["errors"][paper["url"]]["reason"] == (
         "BERTScore F1 returned NaN"
     )
 
     assert torch.isnan(
-        torch.tensor(result["errors"][paper["url"]]["bertscore_f1"])
+        torch.tensor(
+            result["errors"][paper["url"]]["bertscore_f1"]
+        )
     )
