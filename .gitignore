@@ -2,3 +2,4 @@
 .venv
 test_result.txt
 pinned_versions.txt
+/indexes

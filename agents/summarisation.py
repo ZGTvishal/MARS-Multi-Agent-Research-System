@@ -2,12 +2,12 @@ from core.state import AgentState
 from langgraph.types import Send, Command
 from typing_extensions import TypedDict
 from core.utils import get_index_path, split_text
-import faiss
 import os
 from agents.indexing import _model
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 from bert_score import BERTScorer
+import faiss
 
 load_dotenv()
 

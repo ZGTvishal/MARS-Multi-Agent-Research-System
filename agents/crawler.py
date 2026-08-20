@@ -26,7 +26,7 @@ def crawler_agent(state: AgentState) -> dict:
         papers.append({
             "title": result.title,
             "abstract": result.summary,
-            "year": int(result.year),
+            "year": int(result.published.year),
             "authors": [a.name for a in result.authors],
             "url": result.entry_id,
             "source": "arxiv"
