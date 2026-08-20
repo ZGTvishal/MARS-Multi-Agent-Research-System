@@ -74,15 +74,31 @@ def run_pipeline(query: str) -> AgentState:
 
 if __name__ == "__main__":
     import sys
-    import json
 
     query = sys.argv[1] if len(sys.argv) > 1 else "transformer architecture attention mechanism"
     print(f"Running MARS pipeline for query: {query!r}\n")
 
     final_state = run_pipeline(query)
 
-    print(f"\nPapers found: {len(final_state['papers'])}")
+    print(f"\n{'='*60}")
+    print(f"Papers found: {len(final_state['papers'])}")
     print(f"Summaries validated: {len(final_state['final_summary'])}")
     print(f"Errors (cap-exhausted): {len(final_state['errors'])}")
-    print(f"Knowledge graph nodes: {len(final_state['knowledge_graph'].get('nodes', []))}")
-    print(f"Knowledge graph edges: {len(final_state['knowledge_graph'].get('edges', []))}")
+    print(f"{'='*60}\n")
+
+    print("SAMPLE SUMMARIES\n")
+    for i, (url, summary) in enumerate(final_state["final_summary"].items()):
+        if i >= 3:
+            break
+        title = next((p["title"] for p in final_state["papers"] if p["url"] == url), url)
+        score = final_state["bertscore_f1"].get(url, "N/A")
+        print(f"[{i+1}] {title}")
+        print(f"    BERTScore-F1: {score}")
+        print(f"    {summary[:300]}...\n")
+
+    kg = final_state["knowledge_graph"]
+    print(f"KNOWLEDGE GRAPH — {len(kg.get('nodes', []))} nodes, {len(kg.get('edges', []))} edges\n")
+    for edge in kg.get("edges", [])[:5]:
+        src_title = next((n["title"] for n in kg["nodes"] if n["id"] == edge["source"]), edge["source"])
+        tgt_title = next((n["title"] for n in kg["nodes"] if n["id"] == edge["target"]), edge["target"])
+        print(f"  {src_title[:40]} <-> {tgt_title[:40]}  (similarity: {edge['weight']:.3f})")

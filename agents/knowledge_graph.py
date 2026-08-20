@@ -70,7 +70,7 @@ def knowledge_graph_agent(state: AgentState) -> dict:
                 graph.add_edge(
                     urls[i],
                     urls[j],
-                    weight=similarity
+                    weight=float(similarity)
                 )
 
     knowledge_graph = nx.node_link_data(graph)
