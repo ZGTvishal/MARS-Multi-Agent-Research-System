@@ -121,9 +121,9 @@ def validate(state: ValidateInput) -> dict:
 )
     
     F1_float = F1.item()
-    if F1_float >= 0.65:
+    if F1_float >= os.getenv("BERT_SCORE_THRESHOLD"):
         return {'final_summary':{state['paper']['url']: state['summary']}, 'bertscore_f1':{state['paper']['url']: F1_float}, 'reroute_count': {state['entry_id']:state["reroute_count"]}}
-    elif F1_float < 0.65 and state['reroute_count'] < 2:
+    elif F1_float < os.getenv("BERT_SCORE_THRESHOLD") and state['reroute_count'] < 2:
         new_count = state['reroute_count'] + 1
         return Command(update ={'reroute_count':{state["entry_id"]: new_count}, 'bertscore_f1':{state['paper']['url']: F1_float}}, goto=Send("summarise", {"paper":state["paper"], "k":3, 'reroute_count':new_count }))
     elif state['reroute_count'] >= 2:
